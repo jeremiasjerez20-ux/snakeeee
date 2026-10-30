@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>vivoritaita</title>
+
+    <style>
+        canvas {
+            background-color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>^o^</h1>
+    <canvas id="tablero" width="400" height="400"></canvas>
+
+    <script>
+        let tabla = document.getElementById("tablero");
+        let contexto = tabla.getContext("2d");
+
+        let gameOver = false;
+        let pausado = false;
+        let direccion = "ArrowUp";
+        let nuevaDireccion = "ArrowUp";
+
+        let vibora;
+        let manzana;
+        let intervalo;
+
+        // Iniciar o reiniciar el juego
+        function iniciarJuego() {
+            clearInterval(intervalo);
+
+            gameOver = false;
+            pausado = false;
+            direccion = "ArrowUp";
+            nuevaDireccion = "ArrowUp";
+
+            vibora = [
+                { x: 200, y: 200 },
+                { x: 200, y: 220 },
+                { x: 200, y: 240 }
+            ];
+
+            crearManzana();
+            dibujar();
+
+            intervalo = setInterval(mover, 120);
+        }
+
+        // Crear una manzana que no aparezca dentro de la vibora
+        function crearManzana() {
+            do {
+                manzana = {
+                    x: Math.floor(Math.random() * 20) * 20,
+                    y: Math.floor(Math.random() * 20) * 20
+                };
+            } while (vibora.some(parte =>
+                parte.x === manzana.x &&
+                parte.y === manzana.y
+            ));
+        }
+
+        // Dibujar la vibora, la manzana y la pausa
+        function dibujar() {
+            contexto.clearRect(0, 0, 400, 400);
+
+            contexto.fillStyle = "green";
+
+            for (let i = 0; i < vibora.length; i++) {
+                contexto.fillRect(
+                    vibora[i].x,
+                    vibora[i].y,
+                    20,
+                    20
+                );
+            }
+
+            contexto.fillStyle = "red";
+            contexto.fillRect(manzana.x, manzana.y, 20, 20);
+
+            if (pausado) {
+                // Triangulo gris de pausa
+                contexto.fillStyle = "gray";
+                contexto.beginPath();
+                contexto.moveTo(170, 140);
+                contexto.lineTo(170, 260);
+                contexto.lineTo(270, 200);
+                contexto.closePath();
+                contexto.fill();
+            }
+        }
+
+        // Controles del teclado
+        document.addEventListener("keydown", function(evento) {
+            if (
+                evento.key === "ArrowUp" ||
+                evento.key === "ArrowDown" ||
+                evento.key === "ArrowLeft" ||
+                evento.key === "ArrowRight" ||
+                evento.key === "Enter"
+            ) {
+                evento.preventDefault();
+            }
+
+            // Enter pausa, reanuda o reinicia
+            if (evento.key === "Enter") {
+                if (gameOver) {
+                    iniciarJuego();
+                } else {
+                    pausado = !pausado;
+                    dibujar();
+                }
+                return;
+            }
+
+            if (gameOver || pausado) {
+                return;
+            }
+
+            // Evitar que la vibora se de vuelta directamente
+            if (evento.key === "ArrowUp" &&
+                direccion !== "ArrowDown") {
+                nuevaDireccion = "ArrowUp";
+            } else if (evento.key === "ArrowDown" &&
+                direccion !== "ArrowUp") {
+                nuevaDireccion = "ArrowDown";
+            } else if (evento.key === "ArrowLeft" &&
+                direccion !== "ArrowRight") {
+                nuevaDireccion = "ArrowLeft";
+            } else if (evento.key === "ArrowRight" &&
+                direccion !== "ArrowLeft") {
+                nuevaDireccion = "ArrowRight";
+            }
+        });
+
+        // Mover la vibora
+        function mover() {
+            if (gameOver || pausado) {
+                return;
+            }
+
+            direccion = nuevaDireccion;
+
+            let cabeza = {
+                x: vibora[0].x,
+                y: vibora[0].y
+            };
+
+            if (direccion === "ArrowUp") {
+                cabeza.y -= 20;
+            } else if (direccion === "ArrowDown") {
+                cabeza.y += 20;
+            } else if (direccion === "ArrowLeft") {
+                cabeza.x -= 20;
+            } else if (direccion === "ArrowRight") {
+                cabeza.x += 20;
+            }
+
+            // Comprobar si sale del tablero
+            if (
+                cabeza.x < 0 || cabeza.x >= 400 ||
+                cabeza.y < 0 || cabeza.y >= 400
+            ) {
+                perder();
+                return;
+            }
+
+            let comio = (
+                cabeza.x === manzana.x &&
+                cabeza.y === manzana.y
+            );
+
+            // Si no come, la cola avanza y deja libre su casilla
+            if (!comio) {
+                vibora.pop();
+            }
+
+            // Comprobar si choca contra su propio cuerpo
+            for (let i = 0; i < vibora.length; i++) {
+                if (
+                    cabeza.x === vibora[i].x &&
+                    cabeza.y === vibora[i].y
+                ) {
+                    perder();
+                    return;
+                }
+            }
+
+            // Agregar la nueva cabeza
+            vibora.unshift(cabeza);
+
+            // Si comio, crece y aparece otra manzana
+            if (comio) {
+                crearManzana();
+            }
+
+            dibujar();
+        }
+
+        // Cuando pierde
+        function perder() {
+            gameOver = true;
+            clearInterval(intervalo);
+
+            alert(
+                "GAME OVER\n¿Querés volver a jugar?\nPresioná Enter para reiniciar."
+            );
+        }
+
+        // Comenzar la primera partida
+        iniciarJuego();
+    </script>
+</body>
+</html>
